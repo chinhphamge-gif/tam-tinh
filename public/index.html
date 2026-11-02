@@ -1,0 +1,385 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Tâm Tĩnh – Chùa online</title>
+<style>
+:root{--bg:#1d1611;--panel:#2a1f17;--line:#4a3826;--gold:#e3b04b;--cream:#f6ead3;--red:#9c2f21;--ink:#cdbb9c}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--cream);font-family:Georgia,"Times New Roman",serif}
+button{font:inherit;cursor:pointer}
+#app{display:none;height:100%;flex-direction:column}
+header{display:flex;justify-content:space-between;align-items:center;padding:8px 14px;background:var(--panel);border-bottom:1px solid var(--line)}
+header h1{margin:0;font-size:20px;color:var(--gold);letter-spacing:1px}
+header small{color:var(--ink)}
+#main{flex:1;display:flex;min-height:0}
+#stage{flex:1;position:relative;min-width:0}
+canvas{width:100%;height:100%;display:block;background:#6aa36a}
+#side{width:340px;display:flex;flex-direction:column;background:var(--panel);border-left:1px solid var(--line)}
+.tabs{display:flex}
+.tabs button{flex:1;padding:10px 4px;background:#241a13;color:var(--ink);border:0;border-bottom:2px solid transparent}
+.tabs button.on{color:var(--gold);border-bottom-color:var(--gold);background:var(--panel)}
+.pane{display:none;flex:1;min-height:0;flex-direction:column;padding:12px;overflow:auto}
+.pane.on{display:flex}
+.big{background:var(--red);color:#fff;border:0;border-radius:50%;width:150px;height:150px;margin:10px auto;font-size:18px;box-shadow:0 0 0 6px #6b2016,0 8px 20px #0008;transition:transform .08s}
+.big:active{transform:scale(.94)}
+.btn{background:var(--gold);color:#2a1a08;border:0;padding:9px 14px;border-radius:8px;font-weight:bold}
+.btn.alt{background:#3a2c20;color:var(--cream);border:1px solid var(--line)}
+.count{text-align:center;color:var(--gold);font-size:28px}
+.muted{color:var(--ink);font-size:13px;text-align:center}
+select,input{background:#1b140e;border:1px solid var(--line);color:var(--cream);padding:9px;border-radius:8px;font:inherit;width:100%}
+#kinhText{background:#1b140e;border:1px solid var(--line);border-radius:8px;padding:10px;margin:10px 0;flex:1;overflow:auto;line-height:1.8}
+#kinhText p{margin:0;padding:2px 6px;border-radius:5px;color:#9b8a70}
+#kinhText p.cur{background:#4a3318;color:var(--cream)}
+#kinhText p.done{color:#6e604d}
+.offers{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.offers button{background:#3a2c20;border:1px solid var(--line);color:var(--cream);padding:14px 6px;border-radius:10px;font-size:15px}
+.offers button span{display:block;font-size:30px}
+.offers button:hover{border-color:var(--gold)}
+#log{flex:1;overflow:auto;font-size:14px;line-height:1.5;padding-right:4px}
+#log div{margin-bottom:5px}
+#log .sys{color:var(--gold);font-style:italic}
+#log b{color:var(--gold)}
+#chatForm{display:flex;gap:6px;margin-top:8px}
+#chatForm input{flex:1}
+#welcome{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 30%,#4a3318,#140e09);padding:16px;z-index:10}
+.card{background:#2a1f17ee;border:1px solid var(--gold);border-radius:16px;padding:26px;max-width:430px;width:100%;text-align:center;box-shadow:0 20px 60px #000a}
+.card h1{margin:0;color:var(--gold);font-size:34px;letter-spacing:2px}
+.card p{color:var(--ink);margin:6px 0 16px}
+.lotus{font-size:46px}
+.row{display:flex;gap:8px;margin:8px 0}
+.colors{display:flex;gap:8px;justify-content:center;margin:12px 0}
+.colors i{width:30px;height:30px;border-radius:50%;border:3px solid transparent;cursor:pointer}
+.colors i.on{border-color:#fff}
+#err{color:#ff9c8a;min-height:20px;font-size:14px}
+.rooms{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.rooms button{background:#3a2c20;border:2px solid var(--line);color:var(--cream);border-radius:10px;padding:8px 4px;line-height:1.3}
+.rooms button small{display:block;color:var(--ink);font-size:11px}
+.rooms button.on{border-color:var(--gold);background:#4a3318}
+.sugg{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:6px 0}
+.sugg span{border:1px solid var(--line);border-radius:14px;padding:3px 10px;font-size:13px;color:var(--ink);cursor:pointer}
+@media(max-width:800px){
+ #main{flex-direction:column}
+ #stage{flex:none;height:38vh}
+ #side{width:100%;flex:1;border-left:0;border-top:1px solid var(--line)}
+ .big{width:120px;height:120px}
+}
+</style>
+</head>
+<body>
+<div id="welcome">
+ <div class="card">
+  <div class="lotus">🪷</div>
+  <h1>Tâm Tĩnh</h1>
+  <p>Ngôi chùa online – nơi tâm an, người gặp người.<br>Chọn nơi muốn đến và đặt pháp danh để vào.</p>
+  <div class="rooms" id="rooms"></div>
+  <div class="row">
+   <select id="prefix" style="width:38%"></select>
+   <input id="pname" maxlength="18" placeholder="Pháp danh, vd: Minh Hạnh">
+  </div>
+  <div class="sugg" id="sugg"></div>
+  <div class="muted">Chọn màu áo</div>
+  <div class="colors" id="colors"></div>
+  <div id="err"></div>
+  <button class="btn" id="enter" style="width:100%;padding:12px">Vào chùa</button>
+  <p style="font-size:12px;margin-top:14px">Không gian tu tập thanh tịnh. Xin giữ lời nói hiền hòa.</p>
+ </div>
+</div>
+
+<div id="app">
+ <header><h1 id="roomTitle">🪷 Tâm Tĩnh</h1><small><a href="/" style="color:var(--gold)">Đổi nơi</a> · <span id="online">Đang kết nối…</span></small></header>
+ <div id="main">
+  <div id="stage"><canvas id="cv"></canvas></div>
+  <div id="side">
+   <div class="tabs">
+    <button data-p="nien" class="on">Niệm Phật</button>
+    <button data-p="tung">Tụng kinh</button>
+    <button data-p="cung">Cúng dường</button>
+    <button data-p="chat">Chuyện trò</button>
+   </div>
+   <div class="pane on" id="p-nien">
+    <div class="muted" id="nienHint">Chạm vào nút để niệm một câu danh hiệu Phật</div>
+    <button class="big" id="nienBtn">Nam mô<br>A Di Đà Phật</button>
+    <div class="count" id="myNien">0</div>
+    <div class="muted">câu bạn đã niệm hôm nay</div>
+    <div class="row" style="justify-content:center;margin-top:12px">
+     <button class="btn alt" id="autoBtn">▶ Tự động niệm</button>
+     <button class="btn alt" id="muteBtn">🔔 Âm thanh: bật</button>
+    </div>
+    <div class="muted" style="margin-top:14px">Cả chùa đã niệm: <b id="gNien" style="color:var(--gold)">0</b> câu</div>
+   </div>
+   <div class="pane" id="p-tung">
+    <select id="kinhSel"></select>
+    <div id="kinhText"></div>
+    <div class="row"><button class="btn" id="tungBtn" style="flex:1">Bắt đầu tụng</button></div>
+    <div class="muted">Cả chùa đã hoàn thành <b id="gTung" style="color:var(--gold)">0</b> thời kinh</div>
+   </div>
+   <div class="pane" id="p-cung">
+    <div class="muted" style="margin-bottom:10px">Cúng dường bằng tấm lòng. Đây là lễ vật tượng trưng, không thu tiền.</div>
+    <div class="offers" id="offers"></div>
+    <div class="muted" style="margin-top:14px">Cả chùa đã dâng <b id="gCung" style="color:var(--gold)">0</b> lễ cúng dường</div>
+   </div>
+   <div class="pane" id="p-chat">
+    <div id="log"></div>
+    <form id="chatForm"><input id="chatIn" maxlength="200" placeholder="Nhắn đến mọi người…" autocomplete="off"><button class="btn">Gửi</button></form>
+   </div>
+  </div>
+ </div>
+</div>
+
+<script>
+// ===== Dữ liệu =====
+const PREFIX = ['Tâm','Minh','Diệu','Thiện','Huệ','Từ','Giác','Thanh','Nhân','Hạnh'];
+const SUGG = ['Minh Hạnh','Diệu Hoa','Thiện Tâm','Huệ An','Từ Bi','Giác Nhiên','Thanh Tịnh','Nhân Đức'];
+const COLORS = ['#c9822b','#8a6a3b','#a33b2b','#3b6a8a','#4f7a4a','#6b4a8a','#555555'];
+const ROOMS = {
+ baidinh: { name:'Chùa Bái Đính', loc:'Ninh Bình', sign:'BÁI ĐÍNH TỰ', kind:'chua', sky:'#8fc2e0', grass:'#78b36a', roof:'#3a2a1a', wall:'#7b2a1c',
+   nienBtn:'Nam mô<br>A Di Đà Phật', nienSay:'Nam mô A Di Đà Phật', nienTab:'Niệm Phật', tungTab:'Tụng kinh', hint:'Chạm vào nút để niệm một câu danh hiệu Phật', kinh:['Tâm Kinh Bát Nhã','Kinh Di Đà','Chú Đại Bi'] },
+ tamchuc: { name:'Chùa Tam Chúc', loc:'Hà Nam', sign:'TAM CHÚC TỰ', kind:'chua', sky:'#a9d3e8', grass:'#6fae78', roof:'#2f3a2a', wall:'#8a3a22',
+   nienBtn:'Nam mô<br>A Di Đà Phật', nienSay:'Nam mô A Di Đà Phật', nienTab:'Niệm Phật', tungTab:'Tụng kinh', hint:'Chạm vào nút để niệm một câu danh hiệu Phật', kinh:['Tâm Kinh Bát Nhã','Kinh Di Đà','Chú Đại Bi'] },
+ hoang7: { name:'Đền Ông Hoàng Bảy', loc:'Bảo Hà, Lào Cai', sign:'ĐỀN ÔNG HOÀNG BẢY', kind:'den', sky:'#d9c6a0', grass:'#6a9a5c', roof:'#5a1d12', wall:'#b5402a',
+   nienBtn:'Tâm thành<br>khấn nguyện', nienSay:'Tâm thành khấn nguyện', nienTab:'Khấn nguyện', tungTab:'Văn khấn', hint:'Chạm vào nút để thành tâm khấn nguyện', kinh:['Khấn lễ cầu bình an','Khấn lễ tạ ơn'] },
+ hoang10: { name:'Đền Ông Hoàng Mười', loc:'Nghệ An', sign:'ĐỀN ÔNG HOÀNG MƯỜI', kind:'den', sky:'#c9d8e8', grass:'#78a85a', roof:'#6a2a12', wall:'#a83a24',
+   nienBtn:'Tâm thành<br>khấn nguyện', nienSay:'Tâm thành khấn nguyện', nienTab:'Khấn nguyện', tungTab:'Văn khấn', hint:'Chạm vào nút để thành tâm khấn nguyện', kinh:['Khấn lễ cầu bình an','Khấn lễ tạ ơn'] }
+};
+let KINH = {};
+const KINH_ALL = {
+ 'Khấn lễ cầu bình an': [
+  'Con kính lạy chư vị Thánh hiền, các bậc Tiên linh.',
+  'Hôm nay con thành tâm dâng nén hương, đĩa hoa, lễ mọn.',
+  'Cúi xin chứng giám lòng thành của con.',
+  'Cầu cho gia đạo bình an, thân tâm an lạc.',
+  'Cầu cho quốc thái dân an, mưa thuận gió hòa.',
+  'Con xin kính lễ, tạ ơn.'],
+ 'Khấn lễ tạ ơn': [
+  'Con kính lạy chư vị Thánh hiền.',
+  'Con xin tạ ơn che chở, độ trì cho gia đình con.',
+  'Xin được giữ lòng lương thiện, sống tốt đời đẹp đạo.',
+  'Cúi xin chứng giám, con xin kính lễ.'],
+ 'Tâm Kinh Bát Nhã': [
+  'Quán Tự Tại Bồ Tát, hành thâm Bát Nhã Ba La Mật Đa thời,',
+  'chiếu kiến ngũ uẩn giai không, độ nhất thiết khổ ách.',
+  'Xá Lợi Tử, sắc bất dị không, không bất dị sắc,',
+  'sắc tức thị không, không tức thị sắc,',
+  'thọ tưởng hành thức, diệc phục như thị.',
+  'Xá Lợi Tử, thị chư pháp không tướng,',
+  'bất sanh bất diệt, bất cấu bất tịnh, bất tăng bất giảm.',
+  'Yết đế, yết đế, ba la yết đế, ba la tăng yết đế, bồ đề tát bà ha.'],
+ 'Kinh Di Đà': [
+  'Nam mô A Di Đà Phật.',
+  'Nam mô A Di Đà Phật.',
+  'Nam mô A Di Đà Phật.',
+  'Nam mô Quan Thế Âm Bồ Tát.',
+  'Nam mô Đại Thế Chí Bồ Tát.',
+  'Nam mô Thanh Tịnh Đại Hải Chúng Bồ Tát.',
+  'Nguyện sanh Tây phương Tịnh độ trung,',
+  'Cửu phẩm liên hoa vi phụ mẫu.'],
+ 'Chú Đại Bi': [
+  'Nam mô hắc ra đát na đá ra dạ da.',
+  'Nam mô a rị da, bà lô yết đế thước bát ra da,',
+  'Bồ đề tát đỏa bà da, ma ha tát đỏa bà da,',
+  'Ma ha ca lô ni ca da.',
+  'Án, tát bàn ra phạt duệ, số đát na đát tỏa.',
+  'Nam mô tất kiết lật đỏa, y mông a rị da,',
+  'Bà lô kiết đế thất Phật ra lăng đà bà.',
+  'Nam mô na ra cẩn trì, hê rị ma ha bàn đa sa mế.']
+};
+const OFFERS = [['hoa','🪷','Hoa sen'],['huong','🪔','Hương'],['den','🕯️','Đèn'],['qua','🍎','Mâm quả'],['gao','🍚','Gạo']];
+const OIC = Object.fromEntries(OFFERS.map(o=>[o[0],o[1]]));
+
+// ===== Màn hình đặt pháp danh =====
+const $ = s => document.querySelector(s);
+let color = COLORS[0];
+$('#prefix').innerHTML = PREFIX.map(p=>`<option>${p}</option>`).join('');
+$('#sugg').innerHTML = SUGG.map(s=>`<span>${s}</span>`).join('');
+$('#sugg').onclick = e => { if(e.target.tagName==='SPAN') $('#pname').value = e.target.textContent; };
+$('#colors').innerHTML = COLORS.map((c,i)=>`<i style="background:${c}" data-c="${c}" class="${i?'':'on'}"></i>`).join('');
+$('#colors').onclick = e => { if(!e.target.dataset.c) return; color=e.target.dataset.c; document.querySelectorAll('#colors i').forEach(i=>i.classList.toggle('on',i===e.target)); };
+try { const s = JSON.parse(localStorage.getItem('tt')||'{}'); if(s.name){ $('#pname').value = s.name; if(s.color){ color=s.color; document.querySelectorAll('#colors i').forEach(i=>i.classList.toggle('on',i.dataset.c===color)); } } } catch(e){}
+
+// ===== Chọn chùa / đền =====
+let roomId = localStorage.getItem('ttRoom') || 'baidinh'; if(!ROOMS[roomId]) roomId='baidinh';
+function renderRooms(counts){
+  $('#rooms').innerHTML = Object.entries(ROOMS).map(([id,r])=>`<button data-r="${id}" class="${id===roomId?'on':''}">${r.name}<small>${r.loc}${counts&&counts[id]!=null?' · '+counts[id]+' người':''}</small></button>`).join('');
+}
+let roomCounts=null; renderRooms();
+$('#rooms').onclick = e => { const b=e.target.closest('button'); if(!b) return; roomId=b.dataset.r; renderRooms(roomCounts); };
+fetch('/api/rooms').then(r=>r.json()).then(c=>{ roomCounts=c; renderRooms(c); }).catch(()=>{});
+let ROOM = ROOMS[roomId];
+function applyRoom(){
+  ROOM = ROOMS[roomId]; KINH = {}; ROOM.kinh.forEach(k=>KINH[k]=KINH_ALL[k]);
+  $('#roomTitle').textContent = '🪷 '+ROOM.name; document.title = ROOM.name+' – Tâm Tĩnh';
+  $('#nienBtn').innerHTML = ROOM.nienBtn; $('#nienHint').textContent = ROOM.hint;
+  document.querySelector('[data-p=nien]').textContent = ROOM.nienTab; document.querySelector('[data-p=tung]').textContent = ROOM.tungTab;
+  $('#kinhSel').innerHTML = Object.keys(KINH).map(k=>`<option>${k}</option>`).join(''); renderKinh();
+  $('#log').innerHTML=''; altar.length=0; myNien=0; $('#myNien').textContent='0';
+}
+
+// ===== Mạng =====
+let ws, me = null, players = new Map(), myName = '';
+function connect(name){
+  ws = new WebSocket((location.protocol==='https:'?'wss':'ws')+'://'+location.host);
+  ws.onopen = () => ws.send(JSON.stringify({t:'join',name,color,room:roomId}));
+  ws.onmessage = ev => handle(JSON.parse(ev.data));
+  ws.onclose = () => { $('#online').textContent = 'Mất kết nối. Đang thử lại…'; if(me) setTimeout(()=>connect(myName),2000); };
+}
+const send = o => ws && ws.readyState===1 && ws.send(JSON.stringify(o));
+$('#enter').onclick = () => {
+  const pre = $('#prefix').value, n = $('#pname').value.trim();
+  myName = n ? (n.split(' ')[0]===pre ? n : pre+' '+n) : '';
+  if(myName.length<2){ $('#err').textContent='Xin nhập pháp danh.'; return; }
+  $('#err').textContent=''; connect(myName);
+};
+$('#pname').addEventListener('keydown',e=>{ if(e.key==='Enter') $('#enter').click(); });
+
+function handle(m){
+  if(m.t==='error'){ $('#err').textContent=m.msg; me=null; ws.onclose=null; ws.close(); }
+  else if(m.t==='init'){
+    const first = !me; me = m.id; players.clear(); m.players.forEach(addP); setStats(m.stats);
+    localStorage.setItem('tt',JSON.stringify({name:myName,color})); localStorage.setItem('ttRoom',roomId);
+    if(first){ applyRoom(); }
+    $('#welcome').style.display='none'; $('#app').style.display='flex'; resize(); updOnline();
+    if(first) addLog(null,'Chào mừng '+myName+' đến '+ROOM.name+'. A Di Đà Phật.');
+  }
+  else if(m.t==='join'){ addP(m.p); updOnline(); }
+  else if(m.t==='leave'){ players.delete(m.id); updOnline(); }
+  else if(m.t==='move'){ const p=players.get(m.id); if(p){ p.tx=m.x; p.ty=m.y; } }
+  else if(m.t==='chat'){ addLog(m.name,m.text); const p=players.get(m.id); if(p){ p.bubble=m.text; p.bt=Date.now()+5000; } }
+  else if(m.t==='sys') addLog(null,m.msg);
+  else if(m.t==='status'){ const p=players.get(m.id); if(p){ p.status=m.s; p.kinh=m.k; } }
+  else if(m.t==='stats') setStats(m.stats);
+  else if(m.t==='offer'){ addLog(null,`${m.name} ${m.text}.`); altar.push({ic:OIC[m.item],t:Date.now()}); if(altar.length>14) altar.shift(); if(m.id!==me) bell(0.25); }
+}
+function addP(p){ players.set(p.id,{...p,tx:p.x,ty:p.y,bubble:'',bt:0}); }
+function updOnline(){ $('#online').textContent = players.size+' Phật tử đang có mặt'; }
+function setStats(s){ $('#gNien').textContent=s.nien.toLocaleString('vi'); $('#gTung').textContent=s.tung.toLocaleString('vi'); $('#gCung').textContent=s.cung.toLocaleString('vi'); }
+function addLog(name,text){
+  const d=document.createElement('div');
+  if(name){ const b=document.createElement('b'); b.textContent=name+': '; d.append(b,document.createTextNode(text)); }
+  else { d.className='sys'; d.textContent=text; }
+  const l=$('#log'); l.appendChild(d); l.scrollTop=l.scrollHeight; while(l.children.length>150) l.firstChild.remove();
+}
+
+// ===== Tab =====
+document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('on',x===b));
+  document.querySelectorAll('.pane').forEach(p=>p.classList.toggle('on',p.id==='p-'+b.dataset.p));
+});
+
+// ===== Âm thanh =====
+let actx, muted=false;
+function tone(f,d,v,type='sine'){ if(muted) return; actx = actx||new (window.AudioContext||window.webkitAudioContext)();
+  const o=actx.createOscillator(), g=actx.createGain(); o.type=type; o.frequency.value=f; o.connect(g); g.connect(actx.destination);
+  g.gain.setValueAtTime(v,actx.currentTime); g.gain.exponentialRampToValueAtTime(0.0001,actx.currentTime+d); o.start(); o.stop(actx.currentTime+d); }
+const mo = () => { tone(520,0.12,0.35,'triangle'); tone(260,0.15,0.25); };
+const bell = v => { tone(660,1.8,v||0.3); tone(1320,1.2,(v||0.3)/3); };
+$('#muteBtn').onclick = () => { muted=!muted; $('#muteBtn').textContent = muted?'🔕 Âm thanh: tắt':'🔔 Âm thanh: bật'; };
+
+// ===== Niệm Phật =====
+let myNien=0, pending=0, auto=null, nienTimer=null;
+function setStatus(s,k){ send({t:'status',s,k}); const p=players.get(me); if(p){ p.status=s; p.kinh=k; } }
+function niem(){
+  myNien++; pending++; $('#myNien').textContent=myNien.toLocaleString('vi'); mo();
+  const p=players.get(me); if(p){ p.bubble=ROOM.nienSay; p.bt=Date.now()+1800; }
+  if(myNien%108===0){ bell(0.4); addLog(null,'Bạn đã niệm đủ '+myNien+' câu. Tùy hỷ công đức.'); }
+  setStatus('niem',''); clearTimeout(nienTimer); nienTimer=setTimeout(()=>setStatus('',''),6000);
+}
+setInterval(()=>{ if(pending){ send({t:'nien',n:pending}); pending=0; } },2000);
+$('#nienBtn').onclick = niem;
+$('#autoBtn').onclick = () => {
+  if(auto){ clearInterval(auto); auto=null; $('#autoBtn').textContent='▶ Tự động niệm'; }
+  else { auto=setInterval(niem,2200); niem(); $('#autoBtn').textContent='⏸ Dừng niệm'; }
+};
+
+// ===== Tụng kinh =====
+let tungTimer=null, tungIdx=0;
+function renderKinh(){ const k=$('#kinhSel').value; if(!KINH[k]){ $('#kinhText').innerHTML=''; return; } $('#kinhText').innerHTML = KINH[k].map((l,i)=>`<p class="${tungTimer?(i<tungIdx?'done':i===tungIdx?'cur':''):''}">${l}</p>`).join(''); const c=$('#kinhText .cur'); if(c) c.scrollIntoView({block:'center',behavior:'smooth'}); }
+$('#kinhSel').onchange = () => { stopTung(); renderKinh(); };
+function stopTung(){ clearInterval(tungTimer); tungTimer=null; tungIdx=0; $('#tungBtn').textContent='Bắt đầu tụng'; setStatus('',''); }
+$('#tungBtn').onclick = () => {
+  if(tungTimer){ stopTung(); renderKinh(); return; }
+  const k=$('#kinhSel').value, lines=KINH[k]; tungIdx=0; bell(0.3); setStatus('tung',k); renderKinh();
+  $('#tungBtn').textContent='Dừng tụng';
+  tungTimer=setInterval(()=>{ mo(); tungIdx++;
+    if(tungIdx>=lines.length){ send({t:'tung',k}); stopTung(); bell(0.4); renderKinh(); return; }
+    renderKinh(); },4000);
+  mo();
+};
+renderKinh();
+
+// ===== Cúng dường =====
+const altar=[];
+$('#offers').innerHTML = OFFERS.map(o=>`<button data-i="${o[0]}"><span>${o[1]}</span>${o[2]}</button>`).join('');
+$('#offers').onclick = e => { const b=e.target.closest('button'); if(!b) return; send({t:'offer',item:b.dataset.i}); bell(0.3); };
+
+// ===== Chat =====
+$('#chatForm').onsubmit = e => { e.preventDefault(); const v=$('#chatIn').value.trim(); if(v){ send({t:'chat',text:v}); $('#chatIn').value=''; } };
+
+// ===== Vẽ sân chùa =====
+const cv=$('#cv'), g=cv.getContext('2d'); let W=1000,H=600,sc=1;
+function resize(){ const r=cv.parentElement.getBoundingClientRect(), d=devicePixelRatio||1; cv.width=r.width*d; cv.height=r.height*d; sc=Math.min(cv.width/1000,cv.height/600); }
+addEventListener('resize',resize);
+function toWorld(e){ const r=cv.getBoundingClientRect(), d=devicePixelRatio||1; const ox=(cv.width-1000*sc)/2, oy=(cv.height-600*sc)/2;
+  return { x:((e.clientX-r.left)*d-ox)/sc, y:((e.clientY-r.top)*d-oy)/sc }; }
+cv.addEventListener('pointerdown',e=>{ if(!me) return; const w=toWorld(e); const p=players.get(me); const x=Math.max(40,Math.min(960,w.x)), y=Math.max(330,Math.min(570,w.y)); p.tx=x; p.ty=y; send({t:'move',x,y}); });
+
+function drawBG(t){
+  g.fillStyle=ROOM.sky; g.fillRect(0,0,1000,200);
+  g.fillStyle='#e8f1d8'; g.beginPath(); g.arc(120,70,30,0,7); g.fill();
+  g.fillStyle='#4a7f55'; g.beginPath(); g.moveTo(0,230);
+  [[120,130],[260,200],[420,120],[600,190],[780,110],[1000,200]].forEach(p=>g.lineTo(p[0],p[1])); g.lineTo(1000,260); g.lineTo(0,260); g.fill();
+  g.fillStyle=ROOM.grass; g.fillRect(0,230,1000,370);
+  g.fillStyle='#d9c79e'; g.fillRect(300,300,400,300); // sân gạch
+  g.fillStyle='#c4b087'; for(let i=0;i<8;i++){ g.fillRect(300,310+i*40,400,2); }
+  // chùa
+  g.fillStyle=ROOM.wall; g.fillRect(350,170,300,130);
+  g.fillStyle='#f0d9a2'; g.fillRect(380,215,240,85);
+  g.fillStyle='#5a1d12'; g.fillRect(475,235,50,65);
+  g.fillStyle=ROOM.roof; g.beginPath(); g.moveTo(320,175); g.lineTo(500,100); g.lineTo(680,175); g.lineTo(650,185); g.lineTo(500,125); g.lineTo(350,185); g.fill();
+  g.fillStyle='#4a3524'; g.beginPath(); g.moveTo(350,180); g.lineTo(500,120); g.lineTo(650,180); g.lineTo(640,195); g.lineTo(360,195); g.fill();
+  g.fillStyle=getComputedStyle(document.body).getPropertyValue('--gold')||'#e3b04b'; g.beginPath(); g.arc(500,150,9,0,7); g.fill();
+  g.fillStyle='#e3b04b'; g.font='bold 20px Georgia'; g.textAlign='center'; g.font=(ROOM.sign.length>14?'bold 15px':'bold 20px')+' Georgia'; g.fillText(ROOM.sign,500,212);
+  if(ROOM.kind==='chua'){ g.fillStyle='#d9a93f'; g.beginPath(); g.moveTo(500,60); g.lineTo(515,100); g.lineTo(485,100); g.fill(); } // tháp/đỉnh chùa
+  else { g.fillStyle='#d9a93f'; g.fillRect(494,88,12,22); g.fillRect(488,96,24,5); } // cột cờ đền
+  // bàn thờ và lễ vật
+  g.fillStyle='#4a2a14'; g.fillRect(430,285,140,20);
+  g.font='22px serif'; altar.forEach((a,i)=>{ g.fillText(a.ic,440+(i%7)*20,284-Math.floor(i/7)*22); });
+  // đèn lồng
+  [[330,250],[670,250]].forEach(([x,y],i)=>{ g.fillStyle='#d63a2a'; g.beginPath(); g.ellipse(x,y+Math.sin(t/700+i)*2,12,16,0,0,7); g.fill(); });
+  // cây và ao sen
+  [[90,330],[900,340],[60,480],[940,500]].forEach(([x,y])=>{ g.fillStyle='#5a3b22'; g.fillRect(x-6,y,12,40); g.fillStyle='#2f6a3a'; g.beginPath(); g.arc(x,y-5,34,0,7); g.fill(); g.fillStyle='#3d8048'; g.beginPath(); g.arc(x-8,y-14,20,0,7); g.fill(); });
+  g.fillStyle='#4f93b8'; g.beginPath(); g.ellipse(180,430,90,45,0,0,7); g.fill();
+  g.font='20px serif'; g.fillText('🪷',140,435); g.fillText('🪷',200,445); g.fillText('🪷',175,418);
+}
+function drawP(p,isMe,t){
+  const bob = Math.abs(p.tx-p.x)+Math.abs(p.ty-p.y)>3 ? Math.sin(t/90)*3 : 0;
+  const x=p.x, y=p.y+bob;
+  g.fillStyle='#0003'; g.beginPath(); g.ellipse(x,p.y+22,17,6,0,0,7); g.fill();
+  g.fillStyle=p.color; g.beginPath(); g.moveTo(x-16,y+22); g.lineTo(x-10,y-6); g.lineTo(x+10,y-6); g.lineTo(x+16,y+22); g.closePath(); g.fill();
+  g.fillStyle='#f3d3a8'; g.beginPath(); g.arc(x,y-16,11,0,7); g.fill();
+  g.fillStyle='#2a1a10'; g.beginPath(); g.arc(x,y-20,11,Math.PI,0); g.fill();
+  if(p.status==='niem'||p.status==='tung'){ g.font='16px serif'; g.fillText(p.status==='niem'?'🙏':'📿',x+18,y-18); }
+  if(isMe){ g.strokeStyle='#e3b04b'; g.lineWidth=2; g.beginPath(); g.ellipse(x,p.y+22,22,8,0,0,7); g.stroke(); }
+  g.font='bold 13px Georgia'; g.textAlign='center'; g.fillStyle='#000a'; const w=g.measureText(p.name).width;
+  g.fillRect(x-w/2-4,y+27,w+8,17); g.fillStyle=isMe?'#ffd98a':'#fff'; g.fillText(p.name,x,y+40);
+  if(p.bubble && Date.now()<p.bt){
+    g.font='13px Georgia'; const txt=p.bubble.length>38?p.bubble.slice(0,36)+'…':p.bubble, bw=g.measureText(txt).width+16;
+    g.fillStyle='#fffbe9'; g.strokeStyle='#8a6a3b'; g.lineWidth=1.5; g.beginPath(); g.roundRect(x-bw/2,y-62,bw,24,8); g.fill(); g.stroke();
+    g.fillStyle='#2a1a10'; g.fillText(txt,x,y-45);
+  } else if(p.status==='tung' && p.kinh){ g.font='12px Georgia'; g.fillStyle='#fff'; g.fillText('đang tụng '+p.kinh,x,y-42); }
+}
+function loop(t){
+  if(me){
+    g.setTransform(1,0,0,1,0,0); g.fillStyle='#1d1611'; g.fillRect(0,0,cv.width,cv.height);
+    g.setTransform(sc,0,0,sc,(cv.width-1000*sc)/2,(cv.height-600*sc)/2);
+    g.save(); g.beginPath(); g.rect(0,0,1000,600); g.clip(); drawBG(t);
+    const arr=[...players.values()]; arr.forEach(p=>{ p.x+=(p.tx-p.x)*0.12; p.y+=(p.ty-p.y)*0.12; });
+    arr.sort((a,b)=>a.y-b.y).forEach(p=>drawP(p,p.id===me,t)); g.restore();
+  }
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

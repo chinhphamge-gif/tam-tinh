@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: tam-tinh
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start

@@ -1,0 +1,8 @@
+{
+  "name": "tam-tinh",
+  "version": "1.0.0",
+  "description": "Tâm Tĩnh - Chùa online cho người Việt",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "dependencies": { "ws": "^8.18.0" }
+}
