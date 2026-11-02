@@ -11,7 +11,8 @@ const STATS_FILE = path.join(process.env.DATA_DIR || __dirname, 'stats.json');
 // Mỗi "server" là một ngôi chùa/đền với người chơi, chat và công đức riêng
 const ROOM_IDS = ['baidinh', 'tamchuc', 'hoang7', 'hoang10', 'toathien'];
 // Thiền đường: im lặng, tách thành nhiều bản sao (instance) khi đông
-const SILENT = { toathien: 12 }; // số người tối đa mỗi bản sao
+const SILENT = { toathien: 30 };
+const MAX_INST = 20; // số người tối đa mỗi bản sao
 const rooms = {};
 let saved = {};
 try { saved = JSON.parse(fs.readFileSync(STATS_FILE, 'utf8')); } catch (e) {}
@@ -29,6 +30,11 @@ const server = http.createServer((req, res) => {
   if (p === '/api/rooms') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     return res.end(JSON.stringify(Object.fromEntries(ROOM_IDS.map(id => [id, rooms[id].players.size]))));
+  }
+  if (p === '/api/instances') {
+    const cnt = Array(MAX_INST).fill(0); rooms.toathien.players.forEach(q => { if (q.inst <= MAX_INST) cnt[q.inst - 1]++; });
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({ cap: SILENT.toathien, counts: cnt }));
   }
   if (p === '/') p = '/index.html';
   const file = path.join(PUBLIC, path.normalize(p));
@@ -66,7 +72,9 @@ wss.on('connection', ws => {
       const name = clean(m.name, 24);
       // chọn bản sao: phòng thường luôn là 1; thiền đường lấp đầy bản sao đầu còn chỗ
       let inst = 1;
-      if (SILENT[m.room]) { const cnt = {}; R.players.forEach(q => { cnt[q.inst] = (cnt[q.inst] || 0) + 1; }); while ((cnt[inst] || 0) >= SILENT[m.room]) inst++; }
+      if (SILENT[m.room]) { const cnt = {}; R.players.forEach(q => { cnt[q.inst] = (cnt[q.inst] || 0) + 1; }); const want = parseInt(m.inst, 10);
+      if (want >= 1 && want <= MAX_INST && (cnt[want] || 0) < SILENT[m.room]) inst = want;
+      else while ((cnt[inst] || 0) >= SILENT[m.room]) inst++; }
       if (name.length < 2) return send(ws, { t: 'error', msg: 'Pháp danh cần ít nhất 2 ký tự.' });
       if ([...R.players.values()].some(p => p.inst === inst && p.name.toLowerCase() === name.toLowerCase()))
         return send(ws, { t: 'error', msg: 'Pháp danh này đang có người dùng ở đây, xin chọn pháp danh khác.' });
@@ -89,7 +97,7 @@ wss.on('connection', ws => {
       const text = clean(m.text, 200); if (!text) return;
       all({ t: 'chat', id: p.id, name: p.name, text });
     } else if (m.t === 'status') {
-      p.status = ['niem', 'tung', 'sit', ''].includes(m.s) ? m.s : '';
+      p.status = ['niem', 'tung', 'sit', 'bow', ''].includes(m.s) ? m.s : '';
       broadcast(ws.room, { t: 'status', id: p.id, s: p.status, k: clean(m.k, 40) }, ws, ws.inst);
     } else if (m.t === 'nien') {
       R.stats.nien += clamp(m.n, 1, 20) | 0; dirty = true;
