@@ -126,7 +126,25 @@ input:focus,select:focus{border-color:var(--gold)}
 #zRoomList button.cur{border-color:#b9a36a;background:#b9a36a22}#zRoomList button.full{opacity:.4;cursor:not-allowed}#zRoomList small{display:block;color:#ece6d099;margin-top:3px}
 .zrow{display:block;background:#ffffff0d;border-radius:16px;padding:12px 14px;margin-bottom:10px}.zrow span{display:block;font-size:15px;margin-bottom:8px}.zrow small{color:#ece6d088;font-size:12px;margin-left:6px}.zrow input{width:100%;accent-color:#b9a36a}
 @media(max-width:700px){#zTop{left:10px;top:10px;padding:8px 12px;gap:8px}#zRight{right:10px;top:10px}#zChant{right:10px;top:64px}#zHint{top:70px;font-size:11px}#zDock{bottom:10px;max-width:calc(100% - 16px)}#zDock button{padding:6px 7px;font-size:11px}#zDock button i{font-size:19px}#zOverBar{bottom:96px}}
+
+/* ===== Phong cách kính mờ tối (theo bản thiết kế) ===== */
+#welcome{background:rgba(14,16,12,.5);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.card{font-family:"Be Vietnam Pro",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:rgba(40,41,34,.82);border:1px solid rgba(236,230,208,.2);border-radius:28px;padding:30px 28px;max-width:500px;text-align:left;box-shadow:0 24px 70px #000a;color:#ece6d0}
+.card h1{font-size:26px;letter-spacing:0;color:#ece6d0;text-shadow:none;font-weight:600;margin-top:2px}
+.card p{color:rgba(236,230,208,.7);font-size:14px;line-height:1.5}
+.lotus{display:none}.card .where{color:#c9b98a;font-size:13px}.card .where a{color:#e3cf8f}
+.card input,.card select{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:14px;color:#ece6d0;padding:13px 16px;font:inherit;font-size:15px}
+.card .sugg span{background:rgba(185,163,106,.14);border:1px solid rgba(185,163,106,.3);color:#e3cf8f;border-radius:18px}
+.card .muted{color:#c9b98a;font-size:13px}
+.avs button{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:18px;color:#ece6d0}
+.avs button.on{border-color:#b9a36a;background:rgba(185,163,106,.2)}
+.card .btn{background:#b9a36a;color:#24251f;border:0;border-radius:26px;font-weight:600;box-shadow:none}
+#lobbyTitle{background:rgba(36,37,31,.6);border:1px solid rgba(236,230,208,.22);border-radius:32px;font-family:"Be Vietnam Pro",system-ui,sans-serif}
+#lobbyTitle b{color:#ece6d0;letter-spacing:0;font-size:19px;font-weight:600}#lobbyTitle span{color:#c9b98a}
+.spot .n{font-family:"Be Vietnam Pro",system-ui,sans-serif;background:rgba(20,22,18,.75);color:#e3cf8f;border:0;border-radius:14px;font-size:12.5px;padding:3px 12px}
+.spot .nm{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);white-space:nowrap;padding:10px 20px;border-radius:26px;background:rgba(36,37,31,.72);border:1px solid #b9a36a;font:500 15px "Be Vietnam Pro",system-ui,sans-serif;color:#ece6d0;box-shadow:0 8px 24px #0007}
 </style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600&display=swap">
 </head>
 <body>
 <div id="gl"></div>
@@ -698,7 +716,7 @@ const SPOTS={baidinh:[30.5,15.9],hoang7:[18,55.4],tamchuc:[91.1,39],hoang10:[82.
 let lobbyOn=true;
 function renderLobby(){ $('#mapbox').querySelectorAll('.spot').forEach(e=>e.remove());
   Object.entries(ROOMS).forEach(([id,r])=>{ const [x,y]=SPOTS[id], b=document.createElement('button'); b.className='spot'; b.dataset.r=id; b.style.left=x+'%'; b.style.top=y+'%'; b.setAttribute('aria-label',r.name+', '+r.loc);
-    b.innerHTML='<i></i><span class="n">'+((roomCounts&&roomCounts[id])||0)+' Phật tử</span>'; $('#mapbox').appendChild(b); }); }
+    b.innerHTML='<i></i>'+(id==='toathien'?'<span class="nm">Thiền đường Tĩnh Lặng</span>':'')+'<span class="n">'+((roomCounts&&roomCounts[id])||0)+(id==='toathien'?' người đang ngồi':' Phật tử')+'</span>'; $('#mapbox').appendChild(b); }); }
 function refreshCounts(){ fetch('/api/rooms').then(r=>r.json()).then(c=>{ roomCounts=c; renderLobby(); }).catch(()=>{}); }
 function enterRoom(id){ roomId=id; ROOM=ROOMS[id]; buildWorld(id); lobbyOn=false; $('#lobby').style.display='none';
   $('#where').innerHTML='📍 '+ROOM.name+' · '+ROOM.loc+' <a href="#" id="back">Đổi nơi</a>'; $('#back').onclick=e=>{ e.preventDefault(); showLobby(); };
