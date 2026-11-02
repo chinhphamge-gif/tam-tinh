@@ -94,6 +94,7 @@ input:focus,select:focus{border-color:var(--gold)}
  .count{font-size:24px}
  #hud{display:none}
 }
+#side.silent{background:rgba(24,24,20,.82)}#side.silent .tabs{display:none}
 </style>
 </head>
 <body>
@@ -156,6 +157,16 @@ input:focus,select:focus{border-color:var(--gold)}
    <div class="offers" id="offers"></div>
    <div class="muted" style="margin-top:14px">Cả chùa đã dâng <b id="gCung" style="color:var(--gold)">0</b> lễ cúng dường</div>
   </div>
+  <div class="pane" id="p-sit">
+   <div class="muted" id="sitRoom">Thiền đường im lặng. Không trò chuyện, chỉ ngồi cùng nhau.</div>
+   <div class="count" id="sitTime">00:00</div>
+   <div class="muted">thời gian bạn đã ngồi</div>
+   <div class="row" style="justify-content:center;margin-top:12px">
+    <button class="btn" id="sitBell">🔔 Gõ chuông nhẹ</button>
+    <button class="btn alt" id="sitMute">🔔 Âm thanh: bật</button>
+   </div>
+   <div class="muted" style="margin-top:14px">Đã cùng ngồi: <b id="gSit" style="color:var(--gold)">0</b> phút</div>
+  </div>
   <div class="pane" id="p-chat">
    <div id="log"></div>
    <form id="chatForm"><input id="chatIn" maxlength="200" placeholder="Nhắn đến mọi người…" autocomplete="off"><button class="btn">Gửi</button></form>
@@ -179,6 +190,7 @@ const ROOMS = {
  baidinh: { name:'Chùa Bái Đính', loc:'Ninh Bình', sign:'BÁI ĐÍNH TỰ', kind:'chua', grass:'#7fb36a', roof:'#4a3a2a', wall:'#a83a24', ...PHAT },
  tamchuc: { name:'Chùa Tam Chúc', loc:'Hà Nam', sign:'TAM CHÚC TỰ', kind:'chua', grass:'#6fae78', roof:'#3a4a34', wall:'#b0452a', ...PHAT },
  hoang7:  { name:'Đền Ông Hoàng Bảy', loc:'Bảo Hà, Lào Cai', sign:'ĐỀN ÔNG HOÀNG BẢY', kind:'den', grass:'#6a9a5c', roof:'#6a1f14', wall:'#b5402a', ...KHAN },
+ toathien:{ name:'Thiền đường Tĩnh Lặng', loc:'Ngồi cùng nhau, không lời', sign:'THIỀN ĐƯỜNG', kind:'chua', silent:true, grass:'#5f8f6a', roof:'#33302a', wall:'#8f7a5a', ...PHAT },
  hoang10: { name:'Đền Ông Hoàng Mười', loc:'Nghệ An', sign:'ĐỀN ÔNG HOÀNG MƯỜI', kind:'den', grass:'#78a85a', roof:'#7a2e16', wall:'#a83a24', ...KHAN }
 };
 // Bầu trời / ánh sáng theo từng nơi
@@ -186,6 +198,7 @@ const THEME = {
  baidinh: { top:'#4f8fd8', hor:'#f5e2bd', sun:'#fff0c8', sunI:2.3, fog:'#ead9b8', glow:.35 },
  tamchuc: { top:'#6aa6dc', hor:'#dfeaee', sun:'#fff6e0', sunI:2.0, fog:'#cfdfe6', glow:.3 },
  hoang7:  { top:'#c9794f', hor:'#f8c98c', sun:'#ffc27a', sunI:2.0, fog:'#efbe8c', glow:.9 },
+ toathien:{ top:'#2a3150', hor:'#e0a98a', sun:'#ffd2a0', sunI:1.2, fog:'#4a4658', glow:.8 },
  hoang10: { top:'#6a78bd', hor:'#f2b9a2', sun:'#ffb98a', sunI:1.8, fog:'#e3b0a2', glow:1.0 }
 };
 const KINH_ALL = {
@@ -569,7 +582,7 @@ addEventListener('resize',resize);
 let skin = localStorage.getItem('ttSkin')||'tieu'; if(!SKINS.some(k=>k[0]===skin)) skin='tieu';
 let color = COLORS[0], roomId = localStorage.getItem('ttRoom') || 'baidinh'; if(!ROOMS[roomId]) roomId='baidinh';
 let ROOM = ROOMS[roomId], roomCounts=null;
-let ws, me=null, players=new Map(), myName='';
+let inst=1, ws, me=null, players=new Map(), myName='';
 $('#prefix').innerHTML = PREFIX.map(p=>`<option>${p}</option>`).join('');
 $('#sugg').innerHTML = SUGG.map(s=>`<span>${s}</span>`).join('');
 $('#sugg').onclick = e => { if(e.target.tagName==='SPAN') $('#pname').value = e.target.textContent; };
@@ -578,7 +591,7 @@ $('#colors').onclick = e => { if(!e.target.dataset.c) return; color=e.target.dat
 try { const s=JSON.parse(localStorage.getItem('tt')||'{}'); if(s.name){ $('#pname').value=s.name; if(s.color){ color=s.color; document.querySelectorAll('#colors i').forEach(i=>i.classList.toggle('on',i.dataset.c===color)); } } } catch(e){}
 function renderAvs(){ $('#avs').innerHTML=SKINS.map(([id,n])=>`<button data-s="${id}" class="${id===skin?'on':''}">${id==='phattu'?'<span class="em">🧘</span>':`<img src="/chars/${id}_f.webp" alt="${n}">`}<small>${n}</small></button>`).join(''); $('#colorRow').style.display=skin==='phattu'?'block':'none'; }
 renderAvs(); $('#avs').onclick=e=>{ const b=e.target.closest('button'); if(!b) return; skin=b.dataset.s; renderAvs(); };
-const SPOTS={baidinh:[30.5,15.9],hoang7:[18,55.4],tamchuc:[91.1,39],hoang10:[82.4,55.8]}; // vị trí bảng tên trên bản đồ (%)
+const SPOTS={baidinh:[30.5,15.9],hoang7:[18,55.4],tamchuc:[91.1,39],hoang10:[82.4,55.8],toathien:[54,56]}; // vị trí bảng tên trên bản đồ (%)
 let lobbyOn=true;
 function renderLobby(){ $('#mapbox').querySelectorAll('.spot').forEach(e=>e.remove());
   Object.entries(ROOMS).forEach(([id,r])=>{ const [x,y]=SPOTS[id], b=document.createElement('button'); b.className='spot'; b.dataset.r=id; b.style.left=x+'%'; b.style.top=y+'%'; b.setAttribute('aria-label',r.name+', '+r.loc);
@@ -595,10 +608,16 @@ setInterval(()=>{ if(lobbyOn) refreshCounts(); },8000);
 
 function applyRoom(){
   ROOM=ROOMS[roomId]; KINH={}; ROOM.kinh.forEach(k=>KINH[k]=KINH_ALL[k]);
-  $('#roomTitle').textContent='🪷 '+ROOM.name; document.title=ROOM.name+' – Tâm Tĩnh';
+  $('#roomTitle').textContent='🪷 '+ROOM.name; $('#side').classList.toggle('silent',!!ROOM.silent); document.title=ROOM.name+' – Tâm Tĩnh';
   $('#nienBtn').innerHTML=ROOM.nienBtn; $('#nienHint').textContent=ROOM.hint;
   document.querySelector('[data-p=nien]').textContent=ROOM.nienTab; document.querySelector('[data-p=tung]').textContent=ROOM.tungTab;
   $('#kinhSel').innerHTML=Object.keys(KINH).map(k=>`<option>${k}</option>`).join(''); renderKinh();
+  const sil=!!ROOM.silent;
+  document.querySelectorAll('.tabs button').forEach(b=>b.style.display=sil?'none':'');
+  if(sil){ document.querySelectorAll('.tabs button').forEach(x=>x.classList.remove('on')); document.querySelectorAll('.pane').forEach(p=>p.classList.toggle('on',p.id==='p-sit')); }
+  else { document.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('on',x.dataset.p==='nien')); document.querySelectorAll('.pane').forEach(p=>p.classList.toggle('on',p.id==='p-nien')); }
+  $('#hud').textContent=sil?'Im lặng · Chạm để đổi chỗ ngồi · Kéo để xoay':'Chạm để di chuyển · Kéo để xoay · Cuộn/chụm để thu phóng';
+  startSit(sil);
   $('#log').innerHTML=''; myNien=0; $('#myNien').textContent='0';
 }
 function connect(name){
@@ -625,12 +644,12 @@ function removeP(id){ const p=players.get(id); if(p&&p.av) scene.remove(p.av); p
 function handle(m){
   if(m.t==='error'){ $('#err').textContent=m.msg; me=null; ws.onclose=null; ws.close(); }
   else if(m.t==='init'){
-    const first=!me; me=m.id; [...players.keys()].forEach(removeP); m.players.forEach(addP); setStats(m.stats);
+    const first=!me; me=m.id; inst=m.inst||1; [...players.keys()].forEach(removeP); m.players.forEach(addP); setStats(m.stats);
     localStorage.setItem('tt',JSON.stringify({name:myName,color})); localStorage.setItem('ttSkin',skin); localStorage.setItem('ttRoom',roomId);
     if(first){ applyRoom(); if(builtRoom!==roomId) buildWorld(roomId); }
     $('#welcome').style.display='none'; $('#app').style.display='block'; joined=true; resize(); updOnline();
     const mp=players.get(me); if(mp) camT.set(toWX(mp.x)*.6,3.3,toWZ(mp.y)-4); yaw=0; dist=mobile?30:25; pitch=.5;
-    if(first) addLog(null,'Chào mừng '+myName+' đến '+ROOM.name+'. A Di Đà Phật.');
+    if(first&&!ROOM.silent) addLog(null,'Chào mừng '+myName+' đến '+ROOM.name+'. A Di Đà Phật.');
   }
   else if(m.t==='join'){ addP(m.p); updOnline(); }
   else if(m.t==='leave'){ removeP(m.id); updOnline(); }
@@ -639,11 +658,12 @@ function handle(m){
   else if(m.t==='sys') addLog(null,m.msg);
   else if(m.t==='status'){ const p=players.get(m.id); if(p){ p.status=m.s; p.kinh=m.k; } }
   else if(m.t==='stats') setStats(m.stats);
+  else if(m.t==='bell'){ const p=players.get(m.id); if(p&&m.id!==me){ say(p,'🔔',1600); bell(.12); } }
   else if(m.t==='offer'){ addLog(null,`${m.name} ${m.text}.`); addOffering(m.item); if(m.id!==me) bell(0.25); }
 }
 function say(p,text,ms){ if(p.bsp){ p.av.remove(p.bsp); } p.bsp=bubbleSprite(text); p.bsp.position.y=(p.av.userData.H||2.4)+.6; p.av.add(p.bsp); p.bt=performance.now()+ms; }
-function updOnline(){ $('#online').textContent=players.size+' Phật tử đang có mặt'; }
-function setStats(s){ $('#gNien').textContent=s.nien.toLocaleString('vi'); $('#gTung').textContent=s.tung.toLocaleString('vi'); $('#gCung').textContent=s.cung.toLocaleString('vi'); }
+function updOnline(){ $('#online').textContent=(ROOM.silent?'Phòng '+inst+' · '+players.size+' người đang ngồi':players.size+' Phật tử đang có mặt'); }
+function setStats(s){ if($('#gSit')) $('#gSit').textContent=(s.sit||0).toLocaleString('vi'); $('#gNien').textContent=s.nien.toLocaleString('vi'); $('#gTung').textContent=s.tung.toLocaleString('vi'); $('#gCung').textContent=s.cung.toLocaleString('vi'); }
 function addLog(name,text){
   const d=document.createElement('div');
   if(name){ const b=document.createElement('b'); b.textContent=name+': '; d.append(b,document.createTextNode(text)); } else { d.className='sys'; d.textContent=text; }
@@ -662,6 +682,14 @@ function tone(f,d,v,type='sine'){ if(muted) return; actx=actx||new (window.Audio
 const mo=()=>{ tone(520,.12,.35,'triangle'); tone(260,.15,.25); };
 const bell=v=>{ tone(660,1.8,v||.3); tone(1320,1.2,(v||.3)/3); };
 $('#muteBtn').onclick=()=>{ muted=!muted; $('#muteBtn').textContent=muted?'🔕 Âm thanh: tắt':'🔔 Âm thanh: bật'; };
+
+// ---- Tọa thiền (im lặng) ----
+let sitT0=0, sitTick=null, sitSent=0;
+function startSit(on){ clearInterval(sitTick); sitTick=null; if(!on) return; sitT0=Date.now(); sitSent=0; setStatus('sit','');
+  sitTick=setInterval(()=>{ const s=Math.floor((Date.now()-sitT0)/1000); $('#sitTime').textContent=String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
+    if(Math.floor(s/60)>sitSent){ sitSent=Math.floor(s/60); send({t:'sit'}); } },1000); }
+$('#sitBell').onclick=()=>{ send({t:'bell'}); bell(.2); const p=players.get(me); if(p) say(p,'🔔',1600); };
+$('#sitMute').onclick=()=>{ muted=!muted; $('#sitMute').textContent=muted?'🔕 Âm thanh: tắt':'🔔 Âm thanh: bật'; };
 
 // ---- Niệm / Khấn ----
 let myNien=0, pending=0, auto=null, nienTimer=null;
