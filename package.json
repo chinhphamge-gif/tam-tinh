@@ -3,6 +3,11 @@
   "version": "1.0.0",
   "description": "Tâm Tĩnh - Chùa online cho người Việt",
   "main": "server.js",
-  "scripts": { "start": "node server.js" },
-  "dependencies": { "ws": "^8.18.0" }
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "three": "^0.160.0",
+    "ws": "^8.18.0"
+  }
 }
