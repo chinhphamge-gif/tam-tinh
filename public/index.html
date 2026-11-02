@@ -56,10 +56,30 @@ input:focus,select:focus{border-color:var(--gold)}
 .card p{color:var(--ink);margin:6px 0 14px}
 .lotus{font-size:44px;filter:drop-shadow(0 4px 12px #f08ab088)}
 .row{display:flex;gap:8px;margin:8px 0}
+.avs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0}
+.avs button{background:#ffffff10;border:2px solid var(--line);border-radius:12px;color:var(--cream);padding:6px 2px 4px;transition:all .15s}
+.avs button img{height:92px;width:auto;max-width:100%;object-fit:contain;display:block;margin:0 auto;filter:drop-shadow(0 4px 6px #0007)}
+.avs button .em{display:flex;height:92px;align-items:center;justify-content:center;font-size:52px}
+.avs button small{display:block;margin-top:2px;font-size:12px}
+.avs button.on{border-color:var(--gold);background:#f0c35a26}
 .colors{display:flex;gap:9px;justify-content:center;margin:10px 0}
 .colors i{width:30px;height:30px;border-radius:50%;border:3px solid transparent;cursor:pointer;box-shadow:0 2px 8px #0008}
 .colors i.on{border-color:#fff}
 #err{color:#ff9c8a;min-height:20px;font-size:14px}
+#lobby{position:fixed;inset:0;z-index:8;background:#1d3a2c;overflow:auto;scrollbar-width:none}
+#lobby::-webkit-scrollbar{display:none}
+#mapbox{position:relative;width:max(100vw,calc(100vh*1.3393));aspect-ratio:2400/1792}
+#mapimg{position:absolute;inset:0;width:100%;height:100%;user-select:none}
+#lobbyTitle{position:fixed;top:12px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 22px;background:var(--glass);border:1px solid var(--line);border-radius:16px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);text-align:center;pointer-events:none;z-index:9;max-width:92vw}
+#lobbyTitle b{color:var(--gold);font-size:22px;letter-spacing:2px}
+#lobbyTitle span{color:var(--ink);font-size:13px}
+.spot{position:absolute;transform:translate(-50%,-50%);width:19%;height:7%;min-width:120px;background:transparent;border:0;padding:0;cursor:pointer;border-radius:14px}
+.spot i{position:absolute;inset:-4px;border:3px solid rgba(255,230,140,.0);border-radius:16px;box-shadow:0 0 0 0 rgba(255,220,120,.7);animation:pulse 2.2s infinite}
+.spot:hover i,.spot:focus-visible i{border-color:#ffe28a;background:rgba(255,226,138,.18);animation:none;box-shadow:0 0 28px 6px rgba(255,220,120,.75)}
+.spot .n{position:absolute;left:50%;top:100%;transform:translate(-50%,6px);white-space:nowrap;font-size:12px;color:#fff;background:rgba(20,12,6,.78);padding:2px 10px;border-radius:12px;border:1px solid rgba(240,195,90,.5)}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,220,120,.65)}70%{box-shadow:0 0 0 14px rgba(255,220,120,0)}100%{box-shadow:0 0 0 0 rgba(255,220,120,0)}}
+.where{color:var(--gold);font-size:15px;margin:2px 0 10px}
+.where a{color:var(--ink);font-size:13px;margin-left:8px}
 .rooms{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
 .rooms button{background:#ffffff10;border:2px solid var(--line);color:var(--cream);border-radius:12px;padding:9px 4px;line-height:1.3;transition:all .15s}
 .rooms button small{display:block;color:var(--ink);font-size:11px}
@@ -79,19 +99,25 @@ input:focus,select:focus{border-color:var(--gold)}
 <body>
 <div id="gl"></div>
 
+<div id="lobby">
+ <div id="mapbox"><img id="mapimg" src="/map.webp" alt="Bản đồ các chùa, đền" draggable="false"></div>
+ <div id="lobbyTitle"><b>🪷 Tâm Tĩnh</b><span>Chạm vào bảng tên để đến chùa, đền bạn muốn ghé</span></div>
+</div>
+
 <div id="welcome">
  <div class="card">
   <div class="lotus">🪷</div>
   <h1>Tâm Tĩnh</h1>
-  <p>Ngôi chùa online – nơi tâm an, người gặp người.<br>Chọn nơi muốn đến và đặt pháp danh để vào.</p>
-  <div class="rooms" id="rooms"></div>
+  <p>Ngôi chùa online – nơi tâm an, người gặp người.<br>Đặt pháp danh và chọn nhân vật để vào.</p>
+  <div class="where" id="where"></div>
   <div class="row">
    <select id="prefix" style="width:38%"></select>
    <input id="pname" maxlength="18" placeholder="Pháp danh, vd: Minh Hạnh">
   </div>
   <div class="sugg" id="sugg"></div>
-  <div class="muted">Chọn màu áo</div>
-  <div class="colors" id="colors"></div>
+  <div class="muted">Chọn nhân vật</div>
+  <div class="avs" id="avs"></div>
+  <div id="colorRow" style="display:none"><div class="muted">Màu áo</div><div class="colors" id="colors"></div></div>
   <div id="err"></div>
   <button class="btn" id="enter" style="width:100%;padding:12px;font-size:16px">Vào chùa</button>
   <p style="font-size:12px;margin-top:12px">Không gian tu tập thanh tịnh. Xin giữ lời nói hiền hòa.</p>
@@ -99,7 +125,7 @@ input:focus,select:focus{border-color:var(--gold)}
 </div>
 
 <div id="app">
- <header><h1 id="roomTitle">🪷 Tâm Tĩnh</h1><small><a href="/">Đổi nơi</a> · <span id="online">Đang kết nối…</span></small></header>
+ <header><h1 id="roomTitle">🪷 Tâm Tĩnh</h1><small><a href="/">Bản đồ</a> · <span id="online">Đang kết nối…</span></small></header>
  <div id="hud">Chạm để di chuyển · Kéo để xoay · Cuộn/chụm để thu phóng</div>
  <div id="side">
   <div class="tabs">
@@ -200,6 +226,8 @@ const KINH_ALL = {
   'Nam mô na ra cẩn trì, hê rị ma ha bàn đa sa mế.']
 };
 let KINH = {};
+const SKINS = [['tieu','Chú Tiểu'],['thay','Sư Thầy'],['phattu','Phật tử']];
+const CHSZ = {"tieu": {"f": [172, 352], "q": [159, 354], "b": [172, 352]}, "thay": {"f": [231, 354], "q": [170, 356], "b": [181, 354]}, "hoang7": {"f": [255, 378], "q": [267, 379], "b": [248, 376]}, "hoang10": {"f": [254, 380], "q": [223, 379], "b": [247, 376]}};
 const OFFERS = [['hoa','🪷','Hoa sen'],['huong','🪔','Hương'],['den','🕯️','Đèn'],['qua','🍎','Mâm quả'],['gao','🍚','Gạo']];
 const $ = s => document.querySelector(s);
 
@@ -333,7 +361,7 @@ function river(x,wd,len){
 function buildWorld(id){
   const room = ROOMS[id], th = THEME[id], R = rng(id.length*977+id.charCodeAt(0)*31);
   if(world){ scene.remove(world); world.traverse(o=>{ if(o.geometry) o.geometry.dispose(); }); }
-  world = new THREE.Group(); anims = []; altarSlots.length = 0; scene.add(world);
+  world = new THREE.Group(); anims = []; altarSlots.length = 0; npcs.length = 0; scene.add(world);
   scene.fog = new THREE.Fog(new THREE.Color(th.fog),55,190);
 
   // ---- Trời ----
@@ -367,6 +395,7 @@ function buildWorld(id){
     if(id==='tamchuc'){ const hill=mesh(new THREE.ConeGeometry(18,12,7),M(0x5e9a62),-4,6,-42); hill.scale.set(1.5,1,1); world.add(hill); const b=buddha(); b.position.set(-4,11.5,-40); b.scale.setScalar(1.5); world.add(b); const t=tower(5,4,0xd8c08a,0x7a3a22); t.position.set(30,0,-22); world.add(t); }
   } else {
     const gt = gate(room.sign); gt.position.set(0,0,-3.6); world.add(gt);
+    placeDeity(id==='hoang7'?'hoang7':'hoang10',id==='hoang7'?11.6:-11.6,-.5,id==='hoang7'?'Ông Hoàng Bảy':'Ông Hoàng Mười');
     const h = hall(10,7,3.4,room.wall,room.roof,null,2); h.position.set(0,0,-16); world.add(h);
     for(const s of [-1,1]){ for(let i=0;i<4;i++){ const px=s*(11+i*0); const pole=mesh(new THREE.CylinderGeometry(.08,.08,6.5,6),M(0x6a3a1a),px+s*i*0,3.25,2+i*4); world.add(pole);
         const fl=mesh(new THREE.PlaneGeometry(1.1,1.9),new THREE.MeshStandardMaterial({color:[0xd63a2a,0xf0c35a,0x3b7a4a,0x3b6ab8][i],side:THREE.DoubleSide,roughness:.8}),px+s*.85,5.2,2+i*4); world.add(fl);
@@ -452,12 +481,52 @@ function bubbleSprite(text){
   g.fillStyle='#2a1a10'; g.textAlign='center'; g.textBaseline='top'; L.forEach((l,i)=>g.fillText(l,c.width/2,16+i*38)); const sp=spriteFromCanvas(c,c.width/110,c.height/110); sp.center.set(.5,0); return sp;
 }
 function emojiSprite(e){ const c=document.createElement('canvas'); c.width=c.height=128; const g=c.getContext('2d'); g.font='92px serif'; g.textAlign='center'; g.textBaseline='middle'; g.fillText(e,64,70); return spriteFromCanvas(c,.9,.9); }
-function makeAvatar(colorHex,name,me){
+const WPP=.00745, texLoader=new THREE.TextureLoader(), texCache={}, npcs=[];
+function getTex(id,v){ const k=id+'_'+v; if(!texCache[k]){ const t=texLoader.load('/chars/'+k+'.webp'); t.colorSpace=SRGB; t.anisotropy=4; texCache[k]=t; } return texCache[k]; }
+function makeChar(id,k=1,base=0){
+  const spr=new THREE.Sprite(new THREE.SpriteMaterial({map:getTex(id,'f'),transparent:true,alphaTest:.35,toneMapped:false,fog:false})); spr.center.set(.5,0);
+  return { id,k,base,spr,cur:'f',tex:{f:getTex(id,'f'),q:getTex(id,'q'),qm:getTex(id,'qm'),b:getTex(id,'b')}, H:CHSZ[id].q[1]*WPP*k };
+}
+function applyView(ch,face,camAng,t,moving,praying){
+  let d=face-camAng; d=Math.atan2(Math.sin(d),Math.cos(d)); const a=Math.abs(d);
+  const v=a<.62?'f':a<2.15?(d>0?'qm':'q'):'b', sz=CHSZ[ch.id][v==='qm'?'q':v], spr=ch.spr;
+  if(ch.cur!==v){ spr.material.map=ch.tex[v]; ch.cur=v; }
+  let sy=ch.k*sz[1]*WPP; const sx=ch.k*sz[0]*WPP;
+  if(moving){ spr.position.y=ch.base+Math.abs(Math.sin(t*10))*.14*ch.k; sy*=1+Math.sin(t*20)*.025; } else { spr.position.y=ch.base; sy*=1+Math.sin(t*2)*.012; }
+  spr.material.rotation=praying?Math.sin(t*2.4)*.035:(moving?Math.sin(t*10)*.05:0);
+  spr.scale.set(sx,sy,1);
+}
+function charStep(av,ch,p,wx,wz,dx,dz,moving,t,dt){
+  const praying=p.status==='niem'||p.status==='tung', camAng=Math.atan2(camera.position.x-wx,camera.position.z-wz);
+  const target=moving?Math.atan2(dx,dz):(praying?Math.PI:camAng);
+  let d=target-av.rotation.y; d=Math.atan2(Math.sin(d),Math.cos(d)); av.rotation.y+=d*Math.min(1,dt*(moving?10:4));
+  applyView(ch,av.rotation.y,camAng,t,moving,praying);
+}
+function makeCharAvatar(skin,name,me){
+  const g=new THREE.Group(), ch=makeChar(skin,1); g.add(ch.spr);
+  const lab=nameSprite(name,me); lab.position.y=ch.H+.3; g.add(lab);
+  const sh=new THREE.Mesh(new THREE.CircleGeometry(.7,20),new THREE.MeshBasicMaterial({color:0,transparent:true,opacity:.3})); sh.rotation.x=-Math.PI/2; sh.position.y=.04; g.add(sh);
+  if(me){ const ring=new THREE.Mesh(new THREE.RingGeometry(.85,1.0,32),new THREE.MeshBasicMaterial({color:0xf0c35a,transparent:true,opacity:.9,side:THREE.DoubleSide})); ring.rotation.x=-Math.PI/2; ring.position.y=.05; g.add(ring); g.userData.ring=ring; }
+  g.userData.ch=ch; g.userData.H=ch.H; return g;
+}
+let auraTex=null;
+function placeDeity(id,x,z,title){ // tượng/hình ảnh thờ chính, đứng trên bệ giữa sân đền
+  const g=new THREE.Group(), ch=makeChar(id,1.3,.55);
+  g.add(mesh(new THREE.CylinderGeometry(2.1,2.3,.35,24),M(0xb9a57a),0,.18,0)); g.add(mesh(new THREE.CylinderGeometry(1.7,1.8,.22,24),M(0x8e2a1c),0,.46,0));
+  { const tr=mesh(new THREE.TorusGeometry(1.75,.07,6,32),GOLD(),0,.58,0); tr.rotation.x=Math.PI/2; g.add(tr); }
+  auraTex=auraTex||canvasTex(128,128,(c)=>{ const r=c.createRadialGradient(64,64,0,64,64,64); r.addColorStop(0,'rgba(255,225,140,.95)'); r.addColorStop(.45,'rgba(255,200,90,.35)'); r.addColorStop(1,'rgba(255,200,90,0)'); c.fillStyle=r; c.fillRect(0,0,128,128); });
+  const aura=new THREE.Sprite(new THREE.SpriteMaterial({map:auraTex,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,fog:false,opacity:.75})); aura.scale.set(7.5,7.5,1); aura.position.y=2.2; aura.renderOrder=1; g.add(aura);
+  g.add(ch.spr);
+  const lab=nameSprite(title,false); lab.position.y=ch.H+.95; lab.scale.multiplyScalar(1.15); g.add(lab);
+  g.position.set(x,0,z); world.add(g); npcs.push({ch,g,aura});
+}
+function makeAvatar(colorHex,name,me,skinId){
+  if(skinId==='tieu'||skinId==='thay') return makeCharAvatar(skinId,name,me);
   const g=new THREE.Group(), robe=M(colorHex,{roughness:.7}), skin=M(0xf1cfa5,{roughness:.6,flatShading:false}), dark=M(0x2a1a10,{flatShading:false});
   const body=new THREE.Group(); g.add(body); body.userData.body=true;
   body.add(mesh(new THREE.CylinderGeometry(.34,.62,1.3,14),robe,0,.75,0)); body.add(mesh(new THREE.CylinderGeometry(.64,.66,.12,14),M(0xe0b04a,{metalness:.3}),0,.14,0));
   body.add(mesh(new THREE.CylinderGeometry(.37,.37,.16,14),M(0xf0e2bb),0,1.2,0)); // cổ áo
-  body.add(mesh(new THREE.TorusGeometry(.35,.06,6,14),M(0xe0b04a),0,1.12,0)).rotation.x=Math.PI/2;
+  { const tq=mesh(new THREE.TorusGeometry(.35,.06,6,14),M(0xe0b04a),0,1.12,0); tq.rotation.x=Math.PI/2; body.add(tq); }
   const head=mesh(new THREE.SphereGeometry(.3,18,14),skin,0,1.68,0); body.add(head);
   const hair=mesh(new THREE.SphereGeometry(.315,18,10,0,6.283,0,1.25),dark,0,1.7,-.01); body.add(hair);
   for(const s of [-1,1]){ body.add(mesh(new THREE.SphereGeometry(.035,6,6),dark,s*.11,1.69,.28,false)); const arm=mesh(new THREE.CylinderGeometry(.11,.09,.75,8),robe,s*.3,1.0,.2); arm.rotation.z=s*.35; arm.rotation.x=-.8; body.add(arm); }
@@ -497,6 +566,7 @@ function resize(){
 addEventListener('resize',resize);
 
 // ===================== MẠNG & GIAO DIỆN =====================
+let skin = localStorage.getItem('ttSkin')||'tieu'; if(!SKINS.some(k=>k[0]===skin)) skin='tieu';
 let color = COLORS[0], roomId = localStorage.getItem('ttRoom') || 'baidinh'; if(!ROOMS[roomId]) roomId='baidinh';
 let ROOM = ROOMS[roomId], roomCounts=null;
 let ws, me=null, players=new Map(), myName='';
@@ -506,10 +576,22 @@ $('#sugg').onclick = e => { if(e.target.tagName==='SPAN') $('#pname').value = e.
 $('#colors').innerHTML = COLORS.map((c,i)=>`<i style="background:${c}" data-c="${c}" class="${i?'':'on'}"></i>`).join('');
 $('#colors').onclick = e => { if(!e.target.dataset.c) return; color=e.target.dataset.c; document.querySelectorAll('#colors i').forEach(i=>i.classList.toggle('on',i===e.target)); };
 try { const s=JSON.parse(localStorage.getItem('tt')||'{}'); if(s.name){ $('#pname').value=s.name; if(s.color){ color=s.color; document.querySelectorAll('#colors i').forEach(i=>i.classList.toggle('on',i.dataset.c===color)); } } } catch(e){}
-function renderRooms(){ $('#rooms').innerHTML = Object.entries(ROOMS).map(([id,r])=>`<button data-r="${id}" class="${id===roomId?'on':''}">${r.name}<small>${r.loc}${roomCounts&&roomCounts[id]!=null?' · '+roomCounts[id]+' người':''}</small></button>`).join(''); }
-renderRooms();
-$('#rooms').onclick = e => { const b=e.target.closest('button'); if(!b) return; roomId=b.dataset.r; ROOM=ROOMS[roomId]; renderRooms(); buildWorld(roomId); };
-fetch('/api/rooms').then(r=>r.json()).then(c=>{ roomCounts=c; renderRooms(); }).catch(()=>{});
+function renderAvs(){ $('#avs').innerHTML=SKINS.map(([id,n])=>`<button data-s="${id}" class="${id===skin?'on':''}">${id==='phattu'?'<span class="em">🧘</span>':`<img src="/chars/${id}_f.webp" alt="${n}">`}<small>${n}</small></button>`).join(''); $('#colorRow').style.display=skin==='phattu'?'block':'none'; }
+renderAvs(); $('#avs').onclick=e=>{ const b=e.target.closest('button'); if(!b) return; skin=b.dataset.s; renderAvs(); };
+const SPOTS={baidinh:[30.5,15.9],hoang7:[18,55.4],tamchuc:[91.1,39],hoang10:[82.4,55.8]}; // vị trí bảng tên trên bản đồ (%)
+let lobbyOn=true;
+function renderLobby(){ $('#mapbox').querySelectorAll('.spot').forEach(e=>e.remove());
+  Object.entries(ROOMS).forEach(([id,r])=>{ const [x,y]=SPOTS[id], b=document.createElement('button'); b.className='spot'; b.dataset.r=id; b.style.left=x+'%'; b.style.top=y+'%'; b.setAttribute('aria-label',r.name+', '+r.loc);
+    b.innerHTML='<i></i><span class="n">'+((roomCounts&&roomCounts[id])||0)+' Phật tử</span>'; $('#mapbox').appendChild(b); }); }
+function refreshCounts(){ fetch('/api/rooms').then(r=>r.json()).then(c=>{ roomCounts=c; renderLobby(); }).catch(()=>{}); }
+function enterRoom(id){ roomId=id; ROOM=ROOMS[id]; buildWorld(id); lobbyOn=false; $('#lobby').style.display='none';
+  $('#where').innerHTML='📍 '+ROOM.name+' · '+ROOM.loc+' <a href="#" id="back">Đổi nơi</a>'; $('#back').onclick=e=>{ e.preventDefault(); showLobby(); };
+  $('#welcome').style.display='flex'; }
+function showLobby(){ lobbyOn=true; $('#welcome').style.display='none'; $('#lobby').style.display='block'; refreshCounts(); centerMap(); }
+function centerMap(){ const l=$('#lobby'); l.scrollLeft=(l.scrollWidth-l.clientWidth)*.35; l.scrollTop=(l.scrollHeight-l.clientHeight)*.4; }
+$('#mapbox').onclick=e=>{ const b=e.target.closest('.spot'); if(b) enterRoom(b.dataset.r); };
+$('#welcome').style.display='none'; renderLobby(); refreshCounts(); $('#mapimg').addEventListener('load',centerMap); centerMap();
+setInterval(()=>{ if(lobbyOn) refreshCounts(); },8000);
 
 function applyRoom(){
   ROOM=ROOMS[roomId]; KINH={}; ROOM.kinh.forEach(k=>KINH[k]=KINH_ALL[k]);
@@ -521,7 +603,7 @@ function applyRoom(){
 }
 function connect(name){
   ws=new WebSocket((location.protocol==='https:'?'wss':'ws')+'://'+location.host);
-  ws.onopen=()=>ws.send(JSON.stringify({t:'join',name,color,room:roomId}));
+  ws.onopen=()=>ws.send(JSON.stringify({t:'join',name,color,room:roomId,skin}));
   ws.onmessage=ev=>handle(JSON.parse(ev.data));
   ws.onclose=()=>{ $('#online').textContent='Mất kết nối. Đang thử lại…'; if(me) setTimeout(()=>connect(myName),2000); };
 }
@@ -537,14 +619,14 @@ $('#pname').addEventListener('keydown',e=>{ if(e.key==='Enter') $('#enter').clic
 function addP(p){
   const old=players.get(p.id); if(old&&old.av) scene.remove(old.av);
   const q={...p,tx:p.x,ty:p.y,bubble:'',bt:0,bsp:null,bText:'',st:null,stIcon:''};
-  q.av=makeAvatar(new THREE.Color(p.color).getHex(),p.name,p.id===me); q.av.position.set(toWX(p.x),0,toWZ(p.y)); scene.add(q.av); players.set(p.id,q);
+  q.av=makeAvatar(new THREE.Color(p.color).getHex(),p.name,p.id===me,p.skin); q.av.position.set(toWX(p.x),0,toWZ(p.y)); scene.add(q.av); players.set(p.id,q);
 }
 function removeP(id){ const p=players.get(id); if(p&&p.av) scene.remove(p.av); players.delete(id); }
 function handle(m){
   if(m.t==='error'){ $('#err').textContent=m.msg; me=null; ws.onclose=null; ws.close(); }
   else if(m.t==='init'){
     const first=!me; me=m.id; [...players.keys()].forEach(removeP); m.players.forEach(addP); setStats(m.stats);
-    localStorage.setItem('tt',JSON.stringify({name:myName,color})); localStorage.setItem('ttRoom',roomId);
+    localStorage.setItem('tt',JSON.stringify({name:myName,color})); localStorage.setItem('ttSkin',skin); localStorage.setItem('ttRoom',roomId);
     if(first){ applyRoom(); if(builtRoom!==roomId) buildWorld(roomId); }
     $('#welcome').style.display='none'; $('#app').style.display='block'; joined=true; resize(); updOnline();
     const mp=players.get(me); if(mp) camT.set(toWX(mp.x)*.6,3.3,toWZ(mp.y)-4); yaw=0; dist=mobile?30:25; pitch=.5;
@@ -559,7 +641,7 @@ function handle(m){
   else if(m.t==='stats') setStats(m.stats);
   else if(m.t==='offer'){ addLog(null,`${m.name} ${m.text}.`); addOffering(m.item); if(m.id!==me) bell(0.25); }
 }
-function say(p,text,ms){ if(p.bsp){ p.av.remove(p.bsp); } p.bsp=bubbleSprite(text); p.bsp.position.y=2.9; p.av.add(p.bsp); p.bt=performance.now()+ms; }
+function say(p,text,ms){ if(p.bsp){ p.av.remove(p.bsp); } p.bsp=bubbleSprite(text); p.bsp.position.y=(p.av.userData.H||2.4)+.6; p.av.add(p.bsp); p.bt=performance.now()+ms; }
 function updOnline(){ $('#online').textContent=players.size+' Phật tử đang có mặt'; }
 function setStats(s){ $('#gNien').textContent=s.nien.toLocaleString('vi'); $('#gTung').textContent=s.tung.toLocaleString('vi'); $('#gCung').textContent=s.cung.toLocaleString('vi'); }
 function addLog(name,text){
@@ -615,22 +697,26 @@ const _v=new THREE.Vector3(), _c=new THREE.Vector3();
 function frame(){
   requestAnimationFrame(frame);
   const dt=Math.min(clock.getDelta(),.1), t=clock.elapsedTime, now=performance.now();
-  if(!world){ return; }
+  if(!world||lobbyOn){ return; }
   anims.forEach(f=>f(t,dt));
   // người chơi
   players.forEach(p=>{
     p.x+=(p.tx-p.x)*Math.min(1,dt*5); p.y+=(p.ty-p.y)*Math.min(1,dt*5);
     const wx=toWX(p.x), wz=toWZ(p.y), av=p.av, dx=toWX(p.tx)-wx, dz=toWZ(p.ty)-wz, moving=Math.hypot(dx,dz)>.12;
     av.position.x=wx; av.position.z=wz;
+    const ch=av.userData.ch;
+    if(ch){ charStep(av,ch,p,wx,wz,dx,dz,moving,t,dt); } else {
     const body=av.userData.body;
     if(moving){ const ang=Math.atan2(dx,dz); let d=ang-av.rotation.y; d=Math.atan2(Math.sin(d),Math.cos(d)); av.rotation.y+=d*Math.min(1,dt*10); body.position.y=Math.abs(Math.sin(t*10))*.12; body.rotation.z=Math.sin(t*10)*.06; }
     else { body.position.y*=.8; body.rotation.z*=.8; if(p.status==='niem'||p.status==='tung') body.rotation.x=Math.sin(t*2.4)*.07; else body.rotation.x*=.8; }
+    }
     if(av.userData.ring){ av.userData.ring.rotation.z=t; av.userData.ring.scale.setScalar(1+Math.sin(t*3)*.04); }
     const icon=p.status==='niem'?'🙏':p.status==='tung'?'📿':'';
-    if(icon!==p.stIcon){ if(p.st){ av.remove(p.st); p.st=null; } if(icon){ p.st=emojiSprite(icon); p.st.position.set(.75,2.1,0); av.add(p.st); } p.stIcon=icon; }
-    if(p.st) p.st.position.y=2.1+Math.sin(t*3)*.07;
+    if(icon!==p.stIcon){ if(p.st){ av.remove(p.st); p.st=null; } if(icon){ p.st=emojiSprite(icon); p.st.position.set(.8,(av.userData.H||2.6)*.82,0); av.add(p.st); } p.stIcon=icon; }
+    if(p.st) p.st.position.y=(av.userData.H||2.6)*.82+Math.sin(t*3)*.07;
     if(p.bsp && now>p.bt){ av.remove(p.bsp); p.bsp=null; }
   });
+  npcs.forEach(n=>{ const ca=Math.atan2(camera.position.x-n.g.position.x,camera.position.z-n.g.position.z); applyView(n.ch,0,ca,t,false,false); n.aura.material.opacity=.6+Math.sin(t*1.6)*.15; });
   // lễ vật xuất hiện
   altarSlots.forEach(o=>{ const k=Math.min(1,(now-o.userData.t0)/450), s=k<1?1-Math.pow(1-k,3)*(1-Math.sin(k*3.14)*0)+Math.sin(k*3.14)*.25:1; o.scale.setScalar(Math.max(.01,s)); if(o.userData.flame) o.userData.flame.scale.set(1+Math.sin(t*20)*.1,1.7+Math.sin(t*17)*.2,1); });
   // khói hương

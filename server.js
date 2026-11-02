@@ -43,7 +43,8 @@ let nextId = 1;
 const clean = (s, n) => String(s || '').replace(/[<>\u0000-\u001f]/g, '').trim().slice(0, n);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, Number(v) || 0));
 const send = (ws, o) => ws.readyState === 1 && ws.send(JSON.stringify(o));
-const pub = p => ({ id: p.id, name: p.name, color: p.color, x: p.x, y: p.y, status: p.status });
+const SKINS = ['tieu', 'thay', 'phattu'];
+const pub = p => ({ id: p.id, name: p.name, skin: p.skin, color: p.color, x: p.x, y: p.y, status: p.status });
 // gửi cho mọi người trong cùng phòng
 const broadcast = (room, o, except) => {
   const m = JSON.stringify(o);
@@ -64,7 +65,7 @@ wss.on('connection', ws => {
       if (name.length < 2) return send(ws, { t: 'error', msg: 'Pháp danh cần ít nhất 2 ký tự.' });
       if ([...R.players.values()].some(p => p.name.toLowerCase() === name.toLowerCase()))
         return send(ws, { t: 'error', msg: 'Pháp danh này đang có người dùng ở đây, xin chọn pháp danh khác.' });
-      const p = { id: nextId++, name, color: /^#[0-9a-f]{6}$/i.test(m.color) ? m.color : '#c9822b', x: 400 + Math.random() * 200, y: 420 + Math.random() * 100, status: '' };
+      const p = { id: nextId++, name, skin: SKINS.includes(m.skin) ? m.skin : 'phattu', color: /^#[0-9a-f]{6}$/i.test(m.color) ? m.color : '#c9822b', x: 400 + Math.random() * 200, y: 420 + Math.random() * 100, status: '' };
       ws.pid = p.id; ws.room = m.room; R.players.set(p.id, p); R.stats.visitors++; dirty = true;
       send(ws, { t: 'init', id: p.id, room: m.room, players: [...R.players.values()].map(pub), stats: R.stats });
       broadcast(ws.room, { t: 'join', p: pub(p) }, ws);
