@@ -533,8 +533,72 @@ function placeDeity(id,x,z,title){ // tượng/hình ảnh thờ chính, đứng
   const lab=nameSprite(title,false); lab.position.y=ch.H+.95; lab.scale.multiplyScalar(1.15); g.add(lab);
   g.position.set(x,0,z); world.add(g); npcs.push({ch,g,aura});
 }
+// ===== Nhân vật 3D (dựng bằng hình khối, có xương giả: chân, tay, đầu) =====
+const C3 = {
+  tieu:  { robe:0x7b4f31, trim:0x5a3822, skin:0xf4cba2, pants:0x8d97bd, shoe:0x4e4038, bald:true, beads:true, k:1.0 },
+  thay:  { robe:0xe9a21d, trim:0xc2511c, skin:0xf2c7a0, pants:0xe9a21d, shoe:0x4a3a30, bald:true, beard:true, grey:true, sash:true, beads:true, k:1.12 },
+  phattu:{ robe:0xc9822b, trim:0x8a5a1a, skin:0xf1cfa5, pants:0x555555, shoe:0x3a2a20, hair:0x2a1a10, k:1.0 }
+};
+function makeChar3D(id,colorHex){
+  const c=Object.assign({},C3[id]||C3.phattu); if(id==='phattu'&&colorHex!=null){ c.robe=colorHex; c.trim=new THREE.Color(colorHex).multiplyScalar(.6).getHex(); }
+  const MT=(col,o)=>new THREE.MeshStandardMaterial(Object.assign({color:col,roughness:.72,metalness:0},o||{}));
+  const skinM=MT(c.skin,{roughness:.55}), robeM=MT(c.robe,{side:THREE.DoubleSide}), trimM=MT(c.trim,{side:THREE.DoubleSide}), dark=MT(0x2a1a10,{roughness:.5});
+  const OUT=new THREE.MeshBasicMaterial({color:0x3a2412,side:THREE.BackSide});
+  const part=(geo,mat,x=0,y=0,z=0,outline=0)=>{ const m=new THREE.Mesh(geo,mat); m.position.set(x,y,z); m.castShadow=true; if(outline){ const o=new THREE.Mesh(geo,OUT); o.scale.setScalar(1+outline); m.add(o); } return m; };
+  const g=new THREE.Group(), rig=new THREE.Group(); g.add(rig);
+  // thân áo: tiện tròn mềm
+  const pts=[[.02,.34],[.56,.36],[.56,.5],[.5,.75],[.42,1.0],[.36,1.16],[.3,1.24],[.02,1.26]].map(p=>new THREE.Vector2(p[0],p[1]));
+  const torso=part(new THREE.LatheGeometry(pts,28),robeM,0,0,0,.035); rig.add(torso);
+  const hem=part(new THREE.TorusGeometry(.545,.035,8,32),trimM,0,.37,0); hem.rotation.x=Math.PI/2; rig.add(hem);
+  const belt=part(new THREE.TorusGeometry(.47,.04,8,28),trimM,0,.78,0); belt.rotation.x=Math.PI/2; belt.scale.set(1,1,1.1); if(!c.sash) rig.add(belt);
+  const collar=part(new THREE.TorusGeometry(.33,.075,8,24),trimM,0,1.2,.03); collar.rotation.x=Math.PI/2.2; rig.add(collar);
+  if(c.sash){ const s=part(new THREE.CapsuleGeometry(.1,.95,6,10),trimM,.03,.82,.38); s.rotation.set(.12,.0,.55); s.scale.set(1,1,.45); rig.add(s); const sh=part(new THREE.SphereGeometry(.34,16,10,0,6.283,0,1.2),trimM,0,1.0,0); sh.scale.set(1.15,.6,1); rig.add(sh); }
+  if(c.beads){ const b=part(new THREE.TorusGeometry(.3,.045,8,22),MT(0x5a2e1a,{roughness:.4}),0,1.12,.12); b.rotation.x=Math.PI/2.4; b.scale.set(1,1.15,1); rig.add(b); const t=part(new THREE.SphereGeometry(.06,8,6),MT(0x8a2a1a),0,.88,.4); rig.add(t); }
+  // chân
+  const legs=[]; for(const s of [-1,1]){ const L=new THREE.Group(); L.position.set(s*.2,.42,0);
+    L.add(part(new THREE.CylinderGeometry(.12,.11,.3,10),MT(c.pants),0,-.15,0)); const shoe=part(new THREE.SphereGeometry(.15,12,8),MT(c.shoe),0,-.36,.07); shoe.scale.set(1,.65,1.5); L.add(shoe); rig.add(L); legs.push(L); }
+  // tay
+  const arms=[]; for(const s of [-1,1]){ const A=new THREE.Group(); A.position.set(s*.4,1.1,0);
+    const sl=part(new THREE.CylinderGeometry(.11,.2,.55,12),robeM,0,-.27,0,.04); A.add(sl); A.add(part(new THREE.SphereGeometry(.1,12,10),skinM,0,-.6,.0)); rig.add(A); arms.push(A); }
+  // đầu
+  const head=new THREE.Group(); head.position.set(0,1.78,0); rig.add(head);
+  const hd=part(new THREE.SphereGeometry(.6,32,22),skinM,0,0,0,.03); hd.scale.set(1,.93,.96); head.add(hd);
+  for(const s of [-1,1]){ const ear=part(new THREE.SphereGeometry(.11,10,8),skinM,s*.59,-.02,-.02); ear.scale.set(.5,1,.8); head.add(ear);
+    const eye=part(new THREE.SphereGeometry(.075,12,10),dark,s*.2,-.02,.52); eye.scale.set(.85,1.15,.5); head.add(eye);
+    const hl=part(new THREE.SphereGeometry(.024,6,6),new THREE.MeshBasicMaterial({color:0xffffff}),s*.2+.025,.03,.555); head.add(hl);
+    const bl=part(new THREE.SphereGeometry(.1,12,8),new THREE.MeshBasicMaterial({color:0xf08a80,transparent:true,opacity:.55}),s*.34,-.15,.44); bl.scale.set(1,.65,.4); bl.rotation.y=s*.7; head.add(bl);
+    const brow=part(new THREE.CapsuleGeometry(.018,.11,4,6),c.grey?MT(0xf0eeea):dark,s*.2,.12,.52); brow.rotation.z=Math.PI/2+s*.12; head.add(brow); }
+  const mouth=part(new THREE.TorusGeometry(.075,.014,6,14,Math.PI),dark,0,-.2,.55); mouth.rotation.z=Math.PI; head.add(mouth);
+  const nose=part(new THREE.SphereGeometry(.05,8,6),skinM,0,-.08,.57); head.add(nose);
+  if(c.hair){ const h=part(new THREE.SphereGeometry(.625,28,14,0,6.283,0,1.15),MT(c.hair,{roughness:.5}),0,.04,-.03); h.rotation.x=-.18; head.add(h); const bun=part(new THREE.SphereGeometry(.2,12,10),MT(c.hair,{roughness:.5}),0,.62,-.15); head.add(bun); }
+  if(c.grey){ for(const s of [-1,1]){ const h=part(new THREE.SphereGeometry(.17,10,8),MT(0xe9e7e2),s*.53,.02,-.08); h.scale.set(.7,1.2,1); head.add(h); } }
+  if(c.beard){ const bd=part(new THREE.SphereGeometry(.36,16,12),MT(0xf1efea,{roughness:.9}),0,-.42,.28); bd.scale.set(1.05,1.2,.7); head.add(bd); const mu=part(new THREE.CapsuleGeometry(.04,.2,4,8),MT(0xf1efea),0,-.15,.56); mu.rotation.z=Math.PI/2; head.add(mu); }
+  g.scale.setScalar(c.k*1.4);
+  return { g, rig, legs, arms, head, H:2.4*c.k*1.4, pose:{walk:0,pray:0,sit:0} };
+}
+function c3Step(av,p,wx,wz,dx,dz,moving,t,dt){
+  const c=av.userData.c3, P=c.pose, sitting=p.status==='sit', praying=p.status==='niem'||p.status==='tung'||sitting, camAng=Math.atan2(camera.position.x-wx,camera.position.z-wz);
+  const target=moving?Math.atan2(dx,dz):(praying?Math.PI:camAng);
+  let d=target-av.rotation.y; d=Math.atan2(Math.sin(d),Math.cos(d)); av.rotation.y+=d*Math.min(1,dt*(moving?10:4));
+  const k=Math.min(1,dt*7); P.walk+=((moving?1:0)-P.walk)*k; P.pray+=((praying&&!moving?1:0)-P.pray)*k; P.sit+=((sitting&&!moving?1:0)-P.sit)*k;
+  const sw=Math.sin(t*10), idle=Math.sin(t*2);
+  c.rig.position.y=Math.abs(sw)*.1*P.walk+idle*.012*(1-P.walk)-.34*P.sit;
+  c.rig.rotation.x=P.pray*(.1+Math.sin(t*2.4)*.03*(sitting?0:1));
+  c.legs[0].rotation.x=sw*.7*P.walk*(1-P.sit)-1.45*P.sit; c.legs[1].rotation.x=-sw*.7*P.walk*(1-P.sit)-1.45*P.sit;
+  c.legs[0].rotation.z=-.35*P.sit; c.legs[1].rotation.z=.35*P.sit;
+  const as=sw*.8*P.walk*(1-P.pray);
+  c.arms[0].rotation.set(-as-P.pray*1.1,0,-.1*(1-P.pray)+.72*P.pray); c.arms[1].rotation.set(as-P.pray*1.1,0,.1*(1-P.pray)-.72*P.pray);
+  c.head.rotation.x=P.pray*.14+idle*.01; c.head.rotation.z=Math.sin(t*1.5)*.03*(1-P.walk)+Math.sin(t*10)*.04*P.walk;
+}
+function makeAvatar3D(skinId,colorHex,name,me){
+  const c=makeChar3D(skinId,colorHex), g=new THREE.Group(); g.add(c.g);
+  const lab=nameSprite(name,me); lab.position.y=c.H+.35; g.add(lab);
+  const sh=new THREE.Mesh(new THREE.CircleGeometry(.75,20),new THREE.MeshBasicMaterial({color:0,transparent:true,opacity:.3})); sh.rotation.x=-Math.PI/2; sh.position.y=.04; g.add(sh);
+  if(me){ const ring=new THREE.Mesh(new THREE.RingGeometry(.85,1.0,32),new THREE.MeshBasicMaterial({color:0xf0c35a,transparent:true,opacity:.9,side:THREE.DoubleSide})); ring.rotation.x=-Math.PI/2; ring.position.y=.05; g.add(ring); g.userData.ring=ring; }
+  g.userData.c3=c; g.userData.H=c.H; return g;
+}
 function makeAvatar(colorHex,name,me,skinId){
-  if(skinId==='tieu'||skinId==='thay') return makeCharAvatar(skinId,name,me);
+  if(skinId==='tieu'||skinId==='thay'||skinId==='phattu') return makeAvatar3D(skinId,colorHex,name,me);
   const g=new THREE.Group(), robe=M(colorHex,{roughness:.7}), skin=M(0xf1cfa5,{roughness:.6,flatShading:false}), dark=M(0x2a1a10,{flatShading:false});
   const body=new THREE.Group(); g.add(body); body.userData.body=true;
   body.add(mesh(new THREE.CylinderGeometry(.34,.62,1.3,14),robe,0,.75,0)); body.add(mesh(new THREE.CylinderGeometry(.64,.66,.12,14),M(0xe0b04a,{metalness:.3}),0,.14,0));
@@ -733,7 +797,7 @@ function frame(){
     const wx=toWX(p.x), wz=toWZ(p.y), av=p.av, dx=toWX(p.tx)-wx, dz=toWZ(p.ty)-wz, moving=Math.hypot(dx,dz)>.12;
     av.position.x=wx; av.position.z=wz;
     const ch=av.userData.ch;
-    if(ch){ charStep(av,ch,p,wx,wz,dx,dz,moving,t,dt); } else {
+    if(av.userData.c3){ c3Step(av,p,wx,wz,dx,dz,moving,t,dt); } else if(ch){ charStep(av,ch,p,wx,wz,dx,dz,moving,t,dt); } else {
     const body=av.userData.body;
     if(moving){ const ang=Math.atan2(dx,dz); let d=ang-av.rotation.y; d=Math.atan2(Math.sin(d),Math.cos(d)); av.rotation.y+=d*Math.min(1,dt*10); body.position.y=Math.abs(Math.sin(t*10))*.12; body.rotation.z=Math.sin(t*10)*.06; }
     else { body.position.y*=.8; body.rotation.z*=.8; if(p.status==='niem'||p.status==='tung') body.rotation.x=Math.sin(t*2.4)*.07; else body.rotation.x*=.8; }
